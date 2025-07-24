@@ -24,7 +24,6 @@ dependencies {
     implementation 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
     implementation 'com.fasterxml.jackson.core:jackson-databind'
-    runtimeOnly 'com.h2database:h2'
 }
 
 tasks.named('test') {
