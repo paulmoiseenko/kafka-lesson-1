@@ -1,0 +1,15 @@
+server:
+  port: 8080
+
+spring:
+  kafka:
+    bootstrap-servers: ${KAFKA_LESSON_BOOTSTRAP_SERVERS:localhost:9091,localhost:9092,localhost:9093}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    admin:
+      auto-create: true
+
+drone:
+  kafka:
+    topics: ${KAFKA_LESSON_TOPICS:drone_metrics,drone_positions,drone_delivery_statuses}

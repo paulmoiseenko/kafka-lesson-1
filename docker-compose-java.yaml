@@ -1,0 +1,124 @@
+version: '3.9'
+
+services:
+  kafka1:
+    image: confluentinc/cp-kafka:7.8.0
+    container_name: kafka1
+    hostname: kafka1
+    ports:
+      - "9091:9091"
+    healthcheck:
+      test: [ "CMD-SHELL", "nc -z localhost 9091" ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT'
+      KAFKA_LISTENERS: 'INTERNAL://kafka1:29091,EXTERNAL://0.0.0.0:9091,CONTROLLER://kafka1:29094'
+      KAFKA_ADVERTISED_LISTENERS: 'INTERNAL://kafka1:29091,EXTERNAL://localhost:9091'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'INTERNAL'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka1:29094,2@kafka2:29094,3@kafka3:29094'
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 2
+      KAFKA_OFFSETS_TOPIC_NUM_PARTITIONS: 3
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      CLUSTER_ID: '4L6g3nShT-eMCtK--X86sw'
+      KAFKA_LOG_DIRS: '/tmp/kraft-combined-logs'
+
+  kafka2:
+    image: confluentinc/cp-kafka:7.8.0
+    container_name: kafka2
+    hostname: kafka2
+    ports:
+      - "9092:9092"
+    healthcheck:
+      test: [ "CMD-SHELL", "nc -z localhost 9092" ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    environment:
+      KAFKA_NODE_ID: 2
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT'
+      KAFKA_LISTENERS: 'INTERNAL://kafka2:29092,EXTERNAL://0.0.0.0:9092,CONTROLLER://kafka2:29094'
+      KAFKA_ADVERTISED_LISTENERS: 'INTERNAL://kafka2:29092,EXTERNAL://localhost:9092'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'INTERNAL'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka1:29094,2@kafka2:29094,3@kafka3:29094'
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_OFFSETS_TOPIC_NUM_PARTITIONS: 3
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      CLUSTER_ID: '4L6g3nShT-eMCtK--X86sw'
+      KAFKA_LOG_DIRS: '/tmp/kraft-combined-logs'
+
+  kafka3:
+    image: confluentinc/cp-kafka:7.8.0
+    container_name: kafka3
+    hostname: kafka3
+    ports:
+      - "9093:9093"
+    healthcheck:
+      test: [ "CMD-SHELL", "nc -z localhost 9093" ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    environment:
+      KAFKA_NODE_ID: 3
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT'
+      KAFKA_LISTENERS: 'INTERNAL://kafka3:29093,EXTERNAL://0.0.0.0:9093,CONTROLLER://kafka3:29094'
+      KAFKA_ADVERTISED_LISTENERS: 'INTERNAL://kafka3:29093,EXTERNAL://localhost:9093'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'INTERNAL'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka1:29094,2@kafka2:29094,3@kafka3:29094'
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_OFFSETS_TOPIC_NUM_PARTITIONS: 3
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      CLUSTER_ID: '4L6g3nShT-eMCtK--X86sw'
+      KAFKA_LOG_DIRS: '/tmp/kraft-combined-logs'
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    ports:
+      - 8081:8080
+    environment:
+      DYNAMIC_CONFIG_ENABLED: true
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka1:29091
+      KAFKA_CLUSTERS_1_NAME: local1
+      KAFKA_CLUSTERS_1_BOOTSTRAPSERVERS: kafka2:29092
+      KAFKA_CLUSTERS_2_NAME: local2
+      KAFKA_CLUSTERS_2_BOOTSTRAPSERVERS: kafka3:29093
+
+  kafka-producer-java:
+    build:
+      context: ./kafka-producer-java
+    depends_on:
+      - kafka1
+      - kafka2
+      - kafka3
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka1:29091,kafka2:29092,kafka3:29093
+      KAFKA_TOPICS: drone_metrics,drone_positions,drone_delivery_statuses
+    networks:
+      - default
+
+  kafka-consumer-java:
+    build:
+      context: ./kafka-consumer-java
+    depends_on:
+      - kafka1
+      - kafka2
+      - kafka3
+      - kafka-producer-java
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka1:29091,kafka2:29092,kafka3:29093
+    networks:
+      - default
+    deploy:
+      replicas: 2
